@@ -7,18 +7,33 @@ package javaapplication1;
 
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.Base64;
 
+
+import javax.crypto.Cipher;
 /**
  *
  * @author kuro
  */
 public class textConventor {
 
+ private static BigInteger big = new BigInteger("123124512412321");
+
  static HashMap<String,String> encryptionTable = new HashMap<>();
  static HashMap<String,String> decryptionTable = new HashMap<>();
    
- public static void main(String args[])
+ public static void main(String args[]) throws NoSuchAlgorithmException, Exception
  {
+    KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+    keyPairGenerator.initialize(4096);
+        
+    KeyPair keyPair = keyPairGenerator.generateKeyPair();  
+   
      encryptionTable.put("1","11");
      encryptionTable.put("2","12");
      encryptionTable.put("3","13");
@@ -41,14 +56,24 @@ public class textConventor {
      decryptionTable.put("33","9");
      decryptionTable.put("42","0");
      decryptionTable.put("99","_");
+     String e = stringToNumbers("Ahojky ja som pato. Lorem ipsum.");
+     System.out.println("Povodne: Ahojky ja som pato. Lorem ipsum.");
      
-     String e = encrypt("Ahojky ja som pato. Lorem ipsum.");
-     System.out.println("encrypted:"+ e);
-     System.out.println(decrypt(e));
+     System.out.println("Encrypted to numbers:"+ e);
+     System.out.println("Decrypted from numbers:" + numbersToString(e));
+     byte[] cipherTextArray = encrypt(e, keyPair.getPublic());
+     String encryptedText = Base64.getEncoder().encodeToString(cipherTextArray);
+     System.out.println("Public key : "+keyPair.getPublic());
+     System.out.println("Private key : "+keyPair.getPrivate());
+     System.out.println("Encrypted Text to RSA: "+encryptedText);
+        
+     // Decryption
+     String decryptedText = decrypt(cipherTextArray, keyPair.getPrivate());
+     System.out.println("Decrypted Text from RSA : "+numbersToString(decryptedText));
 
  }
  
- static String encrypt(String data)
+ static String stringToNumbers(String data)
  {
      String b = data;
      String tmp = "";
@@ -64,7 +89,7 @@ public class textConventor {
          for(int v=0;v<x.length();v++)
          {
              tmp  = x.substring(v,v+1);
-             System.out.println("table: " + encryptionTable.get(tmp));
+             //System.out.println("table: " + encryptionTable.get(tmp));
              st.append(encryptionTable.get(tmp));
          }
          st.append("99"); 
@@ -74,7 +99,7 @@ public class textConventor {
      return st.toString();
  }
  
- static String decrypt(String data)
+ static String numbersToString(String data)
  {
      //#STAGE1
      
@@ -90,25 +115,52 @@ public class textConventor {
          String a = data.substring(0,2);
          String x = String.valueOf(a);
          //System.out.println("tmp" + x);
-         System.out.println("real value: " + decryptionTable.get(x));
+         //System.out.println("real value: " + decryptionTable.get(x));
          tmp = String.valueOf(decryptionTable.get(x));
          st.append(tmp);
          data = data.substring(2, data.length());
      }
      //#STAGE3
      data = st.toString();
-     System.out.println("d:" + st.toString());
+     //System.out.println("d:" + st.toString());
      while(data!="")
      {
          int index = data.indexOf("_");
          //index--;
          //System.out.println("index " + index);
-         System.out.println("character:" +((char)(int)Integer.parseInt(data.substring(0, index))));
+         //System.out.println("character:" +((char)(int)Integer.parseInt(data.substring(0, index))));
          Final.append(((char)(int)Integer.parseInt(data.substring(0, index))));
          data = data.substring(index+1, data.length());
      }  
      
-     System.out.println("decrypted: " + Final.toString() );
+     //System.out.println("decrypted: " + Final.toString() );
      return Final.toString();
  }
+   public static byte[] encrypt (String plainText,PublicKey publicKey ) throws Exception
+    {
+        //Get Cipher Instance RSA With ECB Mode and OAEPWITHSHA-512ANDMGF1PADDING Padding
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-512ANDMGF1PADDING");
+        
+        //Initialize Cipher for ENCRYPT_MODE
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        
+        //Perform Encryption
+        byte[] cipherText = cipher.doFinal(plainText.getBytes()) ;
+
+        return cipherText;
+    }
+    
+    public static String decrypt (byte[] cipherTextArray, PrivateKey privateKey) throws Exception
+    {
+        //Get Cipher Instance RSA With ECB Mode and OAEPWITHSHA-512ANDMGF1PADDING Padding
+        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-512ANDMGF1PADDING");
+        
+        //Initialize Cipher for DECRYPT_MODE
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        
+        //Perform Decryption
+        byte[] decryptedTextArray = cipher.doFinal(cipherTextArray);
+        
+        return new String(decryptedTextArray);
+    } 
 }
